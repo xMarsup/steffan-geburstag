@@ -14,11 +14,13 @@ export type QuizQuestion = {
   correctAnswer: AnswerId
 }
 
+const imagePath = (fileName: string) => `${import.meta.env.BASE_URL}question-images/${fileName}`
+
 export const questions: QuizQuestion[] = [
   {
     id: 1,
     question: 'Was wurde Steffan auf mysteriöse Weise in Hannover aus seiner Wohnung geklaut?',
-    image: '/question-images/q01.png',
+    image: imagePath('q01.png'),
     imageAlt:
       'Steffan schaut fragend in einer dunklen Apartment-Ermittlungsszene mit Dusche, Laptop, Medizinflasche und Energydosen.',
     answers: [
@@ -33,7 +35,7 @@ export const questions: QuizQuestion[] = [
     id: 2,
     question:
       'Mit welcher genialen Taktik hat Steffan eine 1,0 in der Uni kassiert und sogar ein Jobangebot vom Professor bekommen?',
-    image: '/question-images/q02.png',
+    image: imagePath('q02.png'),
     imageAlt:
       'Steffan sitzt fragend in einem chaotischen Uni-Büro zwischen Büchern, Serverrack, Quizbogen und Laptop.',
     answers: [
@@ -50,7 +52,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 3,
     question: 'Wie nennt Steffan den Honig von Krüger?',
-    image: '/question-images/q03.png',
+    image: imagePath('q03.png'),
     imageAlt:
       'Steffan prüft fragend Honig, Dessert, goldene Gläser und eine neonfarbene Laborflasche.',
     answers: [
@@ -64,7 +66,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 4,
     question: 'Warum hat Steffan angeblich "Hausverbot in allen Lidls in Deutschland"?',
-    image: '/question-images/q04.png',
+    image: imagePath('q04.png'),
     imageAlt:
       'Steffan steht ratlos in einem Supermarkt zwischen Pfandautomat, Brezelberg, Papierbechern und Kaffeemaschine.',
     answers: [
@@ -81,7 +83,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 5,
     question: 'Wie sieht Steffans absolute High-Performer-Strategie im Home-Office aus?',
-    image: '/question-images/q05.png',
+    image: imagePath('q05.png'),
     imageAlt:
       'Steffan sitzt im Home-Office mit Laptop, Wecker, Roboter, Mausapparat und Router-Setup.',
     answers: [
@@ -98,7 +100,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 6,
     question: 'Auf welches absolut wilde Ereignis hat Steffan auf Polymarket 65€ gesetzt?',
-    image: '/question-images/q06.png',
+    image: imagePath('q06.png'),
     imageAlt:
       'Steffan hält einen Wettschein vor mehreren Monitoren mit Kalender, Cyberkarte, Eisinsel und Boxkampf.',
     answers: [
@@ -112,7 +114,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 7,
     question: 'Unter welchem glorreichen Alias liefen die ganzen China-Bestellungen an Omas Adresse?',
-    image: '/question-images/q07.png',
+    image: imagePath('q07.png'),
     imageAlt:
       'Steffan steht fragend zwischen Paketen an Omas Tür mit mehreren abstrakten Alias-Requisiten.',
     answers: [
@@ -126,7 +128,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 8,
     question: 'Welches bahnbrechende KI-Projekt hat Steffan ganz bescheiden nach sich selbst benannt?',
-    image: '/question-images/q08.png',
+    image: imagePath('q08.png'),
     imageAlt:
       'Steffan steht in einem KI-Labor zwischen Streamingwand, Chatbot, Firmenhologramm und Cup-Prototyp.',
     answers: [
@@ -140,7 +142,7 @@ export const questions: QuizQuestion[] = [
   {
     id: 9,
     question: 'Was hat Steffans DNA-Test Erschütterndes ergeben?',
-    image: '/question-images/q09.png',
+    image: imagePath('q09.png'),
     imageAlt:
       'Steffan reagiert schockiert in einem DNA-Labor mit Hologrammen, Kartenmotiven und Proben.',
     answers: [
@@ -155,7 +157,7 @@ export const questions: QuizQuestion[] = [
     id: 10,
     question:
       'Wie lautet der ultimative Trick 17 von Steffan, um bei Supplement-Shops kostenloses Zeug abzugreifen?',
-    image: '/question-images/q10.png',
+    image: imagePath('q10.png'),
     imageAlt:
       'Steffan steht in einem Supplement-Support-Setup zwischen beschädigten Paketen, alten Dosen, Kurier und verschütteter Cola.',
     answers: [

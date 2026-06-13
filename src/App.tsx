@@ -53,13 +53,18 @@ function App() {
   const [toast, setToast] = useState<ToastState | null>(null)
   const [shakeTick, setShakeTick] = useState(0)
   const [mistakes, setMistakes] = useState(0)
+  const [correctCount, setCorrectCount] = useState(0)
   const windowSize = useWindowSize()
 
   const currentQuestion = questions[questionIndex]
-  const voucher = useMemo(() => (stage === 'complete' ? revealVoucher() : ''), [stage])
-  const progress = stage === 'complete'
-    ? 100
-    : ((questionIndex + (feedback === 'correct' ? 1 : 0)) / questions.length) * 100
+  const passed = stage === 'complete' && correctCount >= 8
+  const voucher = useMemo(() => (passed ? revealVoucher() : ''), [passed])
+  const answeredCount = stage === 'complete'
+    ? questions.length
+    : stage === 'quiz'
+      ? questionIndex + (feedback === 'idle' ? 0 : 1)
+      : 0
+  const progress = (answeredCount / questions.length) * 100
 
   useEffect(() => {
     if (!toast) {
@@ -80,6 +85,7 @@ function App() {
     setFeedback('idle')
     setToast(null)
     setMistakes(0)
+    setCorrectCount(0)
     setStage('quiz')
   }
 
@@ -90,10 +96,11 @@ function App() {
     setFeedback('idle')
     setToast(null)
     setMistakes(0)
+    setCorrectCount(0)
   }
 
   const handleAnswer = (answer: AnswerOption) => {
-    if (feedback === 'correct') {
+    if (feedback !== 'idle') {
       return
     }
 
@@ -106,11 +113,11 @@ function App() {
       setFeedback('wrong')
       setShakeTick((tick) => tick + 1)
       publishToast(roast, 'error')
-      return
+    } else {
+      setCorrectCount((count) => count + 1)
+      setFeedback('correct')
+      publishToast('ACCESS GRANTED. Alpha entdeckt.', 'success')
     }
-
-    setFeedback('correct')
-    publishToast('ACCESS GRANTED. Alpha entdeckt.', 'success')
 
     window.setTimeout(() => {
       if (questionIndex === questions.length - 1) {
@@ -142,14 +149,18 @@ function App() {
               feedback={feedback}
               shakeTick={shakeTick}
               mistakes={mistakes}
+              correctCount={correctCount}
               onAnswer={handleAnswer}
             />
           )}
           {stage === 'complete' && (
-            <VictoryScreen
+            <ResultScreen
               key="complete"
               onRestart={restartQuiz}
               voucher={voucher}
+              score={correctCount}
+              totalQuestions={questions.length}
+              passed={passed}
               windowSize={windowSize}
             />
           )}
@@ -177,7 +188,7 @@ function TerminalHeader({ stage, progress }: HeaderProps) {
             Steffan Capital Quiz
           </p>
           <p className="font-mono text-[11px] uppercase text-cyan-200/55">
-            {stage === 'start' ? 'BOOT SEQUENCE' : stage === 'quiz' ? 'LIVE DESK' : 'VAULT UNLOCKED'}
+            {stage === 'start' ? 'BOOT SEQUENCE' : stage === 'quiz' ? 'LIVE DESK' : 'SCORE REPORT'}
           </p>
         </div>
       </div>
@@ -257,8 +268,8 @@ function StartScreen({ onStart }: StartScreenProps) {
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-            Zehn interne Insider-Fragen. Ein Gutschein-Vault. Ein falscher Klick wird öffentlich
-            gedemütigt.
+            Zehn interne Insider-Fragen. Jede Antwort zählt genau einmal. Ab 8/10 öffnet sich
+            der Gutschein-Vault.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <motion.button
@@ -274,7 +285,7 @@ function StartScreen({ onStart }: StartScreenProps) {
             </motion.button>
             <div className="flex flex-wrap gap-2 font-mono text-[11px] uppercase text-slate-400">
               <span className="border border-white/10 bg-white/[0.045] px-3 py-2">10 Fragen</span>
-              <span className="border border-white/10 bg-white/[0.045] px-3 py-2">No Mercy Mode</span>
+              <span className="border border-white/10 bg-white/[0.045] px-3 py-2">8/10 Unlock</span>
               <span className="border border-white/10 bg-white/[0.045] px-3 py-2">30€ Vault</span>
             </div>
           </div>
@@ -327,6 +338,7 @@ type QuizScreenProps = {
   feedback: FeedbackState
   shakeTick: number
   mistakes: number
+  correctCount: number
   onAnswer: (answer: AnswerOption) => void
 }
 
@@ -339,6 +351,7 @@ function QuizScreen({
   feedback,
   shakeTick,
   mistakes,
+  correctCount,
   onAnswer,
 }: QuizScreenProps) {
   const questionCode = useMemo(
@@ -368,7 +381,7 @@ function QuizScreen({
           <div className="space-y-3">
             {questions.map((item, index) => {
               const isActive = index === questionIndex
-              const isDone = index < questionIndex || (isActive && feedback === 'correct')
+              const isDone = index < questionIndex || (isActive && feedback !== 'idle')
               return (
                 <div key={item.id} className="flex items-center gap-3">
                   <span
@@ -387,7 +400,7 @@ function QuizScreen({
           </div>
         </div>
         <div className="space-y-4 border-t border-white/10 pt-5">
-          <StatusRow label="Correct" value={`${questionIndex}/${totalQuestions}`} tone="green" />
+          <StatusRow label="Score" value={`${correctCount}/${totalQuestions}`} tone="green" />
           <StatusRow label="Missclicks" value={String(mistakes)} tone="red" />
           <StatusRow label="Vault" value={progress >= 100 ? 'Open' : 'Armed'} tone="cyan" />
         </div>
@@ -434,7 +447,7 @@ function QuizScreen({
           </div>
 
           <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 font-mono text-xs uppercase text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>Rule: richtige Antwort anklicken, sonst bleibt der Markt geschlossen.</span>
+            <span>Rule: jede Frage zählt einmal. Ab 8/10 öffnet sich der Vault.</span>
             <span>{questionIndex + 1} / {totalQuestions}</span>
           </div>
         </div>
@@ -483,8 +496,9 @@ type AnswerButtonProps = {
 
 function AnswerButton({ answer, correctAnswer, selectedId, feedback, onAnswer }: AnswerButtonProps) {
   const isSelected = selectedId === answer.id
+  const isAnswered = feedback !== 'idle'
   const isWrong = isSelected && feedback === 'wrong'
-  const isCorrect = isSelected && feedback === 'correct' && answer.id === correctAnswer
+  const isCorrect = isAnswered && answer.id === correctAnswer
   const Icon = isCorrect ? CheckCircle2 : isWrong ? XCircle : Zap
   const stateClass = isCorrect
     ? 'border-emerald-300/80 bg-emerald-300/15 text-emerald-50 shadow-[0_0_42px_rgba(52,211,153,0.34)]'
@@ -496,7 +510,7 @@ function AnswerButton({ answer, correctAnswer, selectedId, feedback, onAnswer }:
     <motion.button
       type="button"
       data-testid={`answer-${answer.id}`}
-      disabled={feedback === 'correct'}
+      disabled={isAnswered}
       onClick={() => onAnswer(answer)}
       className={`group relative flex min-h-20 w-full items-center gap-4 overflow-hidden rounded-md border px-4 py-4 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d] sm:px-5 ${stateClass}`}
       animate={
@@ -507,8 +521,8 @@ function AnswerButton({ answer, correctAnswer, selectedId, feedback, onAnswer }:
             : { x: 0, scale: 1, y: 0 }
       }
       transition={{ duration: isWrong ? 0.44 : 0.36, ease: 'easeOut' }}
-      whileHover={feedback === 'correct' ? undefined : { y: -2 }}
-      whileTap={feedback === 'correct' ? undefined : { scale: 0.99 }}
+      whileHover={isAnswered ? undefined : { y: -2 }}
+      whileTap={isAnswered ? undefined : { scale: 0.99 }}
     >
       <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-300 via-cyan-300 to-violet-400 opacity-70" />
       <span className="grid size-11 shrink-0 place-items-center rounded-md border border-current/20 bg-black/30 font-mono text-base font-black">
@@ -541,16 +555,22 @@ function StatusRow({ label, value, tone }: StatusRowProps) {
   )
 }
 
-type VictoryScreenProps = {
+type ResultScreenProps = {
   onRestart: () => void
   voucher: string
+  score: number
+  totalQuestions: number
+  passed: boolean
   windowSize: {
     width: number
     height: number
   }
 }
 
-function VictoryScreen({ onRestart, voucher, windowSize }: VictoryScreenProps) {
+function ResultScreen({ onRestart, voucher, score, totalQuestions, passed, windowSize }: ResultScreenProps) {
+  const ResultIcon = passed ? Trophy : LockKeyhole
+  const missingPoints = Math.max(8 - score, 0)
+
   return (
     <motion.section
       className="relative mx-auto flex min-h-[calc(100svh-88px)] w-full max-w-7xl items-center px-4 pb-10 pt-4 sm:px-6"
@@ -559,7 +579,7 @@ function VictoryScreen({ onRestart, voucher, windowSize }: VictoryScreenProps) {
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     >
-      {windowSize.width > 0 && (
+      {passed && windowSize.width > 0 && (
         <Confetti
           width={windowSize.width}
           height={windowSize.height}
@@ -569,26 +589,58 @@ function VictoryScreen({ onRestart, voucher, windowSize }: VictoryScreenProps) {
           colors={['#34d399', '#22d3ee', '#a78bfa', '#f8fafc', '#facc15']}
         />
       )}
-      <div className="relative w-full overflow-hidden rounded-lg border border-emerald-200/30 bg-white/[0.065] p-5 shadow-[0_30px_140px_rgba(16,185,129,0.22)] backdrop-blur-2xl sm:p-7 lg:p-9">
+      <div
+        className={`relative w-full overflow-hidden rounded-lg border bg-white/[0.065] p-5 backdrop-blur-2xl sm:p-7 lg:p-9 ${
+          passed
+            ? 'border-emerald-200/30 shadow-[0_30px_140px_rgba(16,185,129,0.22)]'
+            : 'border-red-300/25 shadow-[0_30px_140px_rgba(248,113,113,0.16)]'
+        }`}
+      >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_0%,rgba(52,211,153,0.20),transparent_36%),radial-gradient(circle_at_72%_20%,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(168,85,247,0.18),transparent_38%)]" />
         <div className="relative mx-auto max-w-5xl text-center">
           <motion.div
-            className="mx-auto mb-5 grid size-16 place-items-center rounded-md border border-emerald-200/40 bg-emerald-300/15 shadow-[0_0_70px_rgba(52,211,153,0.48)]"
+            className={`mx-auto mb-5 grid size-16 place-items-center rounded-md border ${
+              passed
+                ? 'border-emerald-200/40 bg-emerald-300/15 shadow-[0_0_70px_rgba(52,211,153,0.48)]'
+                : 'border-red-200/35 bg-red-400/12 shadow-[0_0_70px_rgba(248,113,113,0.32)]'
+            }`}
             animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.06, 1] }}
             transition={{ duration: 2.4, repeat: Infinity }}
           >
-            <Trophy className="size-8 text-emerald-200" aria-hidden="true" />
+            <ResultIcon className={`size-8 ${passed ? 'text-emerald-200' : 'text-red-200'}`} aria-hidden="true" />
           </motion.div>
-          <p className="font-mono text-sm font-semibold uppercase text-emerald-200">Vault breached</p>
+          <p className={`font-mono text-sm font-semibold uppercase ${passed ? 'text-emerald-200' : 'text-red-200'}`}>
+            {passed ? 'Vault breached' : 'Vault locked'}
+          </p>
           <h2 className="mt-4 text-4xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
-            Herzlichen Glückwunsch, Mastermind!
+            {passed ? 'Herzlichen Glückwunsch, Mastermind!' : 'Noch nicht genug Alpha.'}
           </h2>
-          <div className="mx-auto mt-5 max-w-4xl border border-cyan-200/25 bg-black/35 p-4 sm:p-5">
-            <p className="text-xl font-black leading-tight text-white sm:text-2xl">
-              Hier ist dein 30€ Amazon-Gutschein:
+
+          <div className="mx-auto mt-5 max-w-3xl border border-white/12 bg-black/35 p-4 sm:p-5">
+            <p className="font-mono text-xs font-semibold uppercase text-slate-400">Final Score</p>
+            <p data-testid="final-score" className="mt-2 text-4xl font-black text-white sm:text-5xl">
+              {score} / {totalQuestions}
             </p>
-            <SecureVoucher value={voucher} />
+            <p className="mt-2 font-mono text-xs uppercase text-slate-400">
+              {passed
+                ? '8/10 erreicht. Der Gutschein-Vault ist offen.'
+                : `Du brauchst mindestens 8 richtige. Es fehlen noch ${missingPoints} Punkt${missingPoints === 1 ? '' : 'e'}.`}
+            </p>
           </div>
+
+          {passed ? (
+            <div className="mx-auto mt-5 max-w-4xl border border-cyan-200/25 bg-black/35 p-4 sm:p-5">
+              <p className="text-xl font-black leading-tight text-white sm:text-2xl">
+                Hier ist dein 30€ Amazon-Gutschein:
+              </p>
+              <SecureVoucher value={voucher} />
+            </div>
+          ) : (
+            <div className="mx-auto mt-5 max-w-3xl border border-red-300/25 bg-red-500/10 p-4 font-mono text-sm uppercase text-red-100 sm:p-5">
+              Vault bleibt zu. Nochmal starten, mehr Brain-Calls landen, dann gibt es den Code.
+            </div>
+          )}
+
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <button
               type="button"
@@ -597,11 +649,17 @@ function VictoryScreen({ onRestart, voucher, windowSize }: VictoryScreenProps) {
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.07] px-5 font-mono text-xs font-bold uppercase text-white outline-none transition hover:border-cyan-200/45 hover:bg-cyan-200/10 focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070d]"
             >
               <RotateCcw className="size-4" aria-hidden="true" />
-              Neustart
+              Nochmal spielen
             </button>
-            <div className="inline-flex h-11 items-center gap-2 border border-emerald-300/25 bg-emerald-300/10 px-5 font-mono text-xs uppercase text-emerald-200">
-              <Gift className="size-4" aria-hidden="true" />
-              Coupon secured
+            <div
+              className={`inline-flex h-11 items-center gap-2 border px-5 font-mono text-xs uppercase ${
+                passed
+                  ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200'
+                  : 'border-red-300/25 bg-red-400/10 text-red-100'
+              }`}
+            >
+              {passed ? <Gift className="size-4" aria-hidden="true" /> : <ShieldAlert className="size-4" aria-hidden="true" />}
+              {passed ? 'Coupon secured' : 'Retry required'}
             </div>
           </div>
         </div>
